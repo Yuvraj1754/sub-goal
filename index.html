@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -99,11 +98,20 @@
         let currentSubs = 73;
         let channelId = 'UC_eL7CK36Yaf0Y7ejkgjDnw';
         let apiKey = 'AIzaSyBHPAwqb25rv9v5DDwnn5_sKtjxnrICPXo'; // Use your API key here
+        
+        // Initialize the progress bar on load
+        document.addEventListener('DOMContentLoaded', function() {
+            updateSubGoal(currentSubs);
+            getSubscriberCount();
+            
+            // Set up periodic refresh (every 5 minutes)
+            setInterval(getSubscriberCount, 300000);
+        });
 
         function updateSubGoal(subs) {
             currentSubs = subs;
-            let progressPercent = (currentSubs / goal) * 100;
-            document.getElementById("goalText").innerText = `Subs: ${currentSubs} / ${goal}`;
+            let progressPercent = Math.min((currentSubs / goal) * 100, 100); // Cap at 100%
+            document.getElementById("goalText").innerText = `Subs: ${currentSubs.toLocaleString()} / ${goal.toLocaleString()}`;
             document.getElementById("progressBar").style.width = `${progressPercent}%`;
         }
 
@@ -112,19 +120,27 @@
             let url = `https://www.googleapis.com/youtube/v3/channels?part=statistics&id=${channelId}&key=${apiKey}`;
             try {
                 let response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
                 let data = await response.json();
                 if (data.items && data.items.length > 0) {
-                    let subs = data.items[0].statistics.subscriberCount;
-                    updateSubGoal(parseInt(subs));
+                    let subs = parseInt(data.items[0].statistics.subscriberCount);
+                    if (!isNaN(subs)) {
+                        updateSubGoal(subs);
+                    } else {
+                        console.error("Invalid subscriber count received");
+                    }
+                } else {
+                    console.error("No channel data found");
                 }
             } catch (error) {
                 console.error("Error fetching subscriber data:", error);
+                // You could add a fallback here to increment locally if API fails
             }
         }
 
-        // Update on page load
-        getSubscriberCount();
-
+        // Event listener for stream events (if using in a streaming platform)
         window.addEventListener('onEventReceived', function (event) {
             let data = event.detail.event;
             if (data.type === "subscriber") {
