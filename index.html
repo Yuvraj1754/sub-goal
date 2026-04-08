@@ -8,7 +8,7 @@
             font-family: 'Bubblegum Sans', sans-serif;
             text-align: center;
             color: #fff;
-            background-color: #121212;
+            background-color: transparent;
             margin: 0;
             padding: 0;
             display: flex;
@@ -20,49 +20,42 @@
         .sub-goal-container {
             width: 450px;
             padding: 30px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
             border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 10px 50px rgba(255, 255, 255, 0.3);
+            box-shadow: 0 10px 40px rgba(255, 255, 255, 0.2);
             backdrop-filter: blur(15px);
-            animation: smoothGlow 2s infinite alternate;
-        }
-
-        @keyframes smoothGlow {
-            0% { box-shadow: 0 10px 30px rgba(255, 255, 255, 0.2); }
-            100% { box-shadow: 0 10px 50px rgba(255, 255, 255, 0.3); }
+            transition: all 0.3s ease;
         }
 
         .goal-text {
-            font-size: 24px;
-            font-weight: bold;
+            font-size: 26px;
             margin-bottom: 20px;
-            text-shadow: 0 0 10px rgba(255, 255, 255, 0.4);
-            animation: moveText 2s ease-in-out infinite alternate;
+            text-shadow: 0 0 12px rgba(255, 255, 255, 0.6);
+            animation: floatText 2s infinite alternate ease-in-out;
         }
 
-        @keyframes moveText {
-            0% { transform: translateY(-3px); }
-            100% { transform: translateY(3px); }
+        @keyframes floatText {
+            from { transform: translateY(-3px); }
+            to { transform: translateY(3px); }
         }
 
         .progress-bar {
             width: 100%;
             height: 25px;
-            background: #333;
-            border-radius: 25px;
+            background: #222;
+            border-radius: 30px;
             overflow: hidden;
             position: relative;
-            box-shadow: 0 3px 20px rgba(255, 255, 255, 0.15);
         }
 
         .progress {
             height: 100%;
             width: 0%;
             background: linear-gradient(45deg, #6c9ce7, #f1c2b1);
-            border-radius: 25px;
-            transition: width 1s ease-out;
-            box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+            border-radius: 30px;
+            transition: width 1.5s cubic-bezier(0.22, 1, 0.36, 1);
+            box-shadow: 0 0 15px rgba(255,255,255,0.4);
         }
 
         .fire-effect {
@@ -73,78 +66,108 @@
             background-size: cover;
             bottom: -25px;
             left: 0;
-            z-index: 2;
-            animation: fire-animation 1s infinite linear;
+            opacity: 0.8;
+            mix-blend-mode: screen;
         }
 
-        @keyframes fire-animation {
-            0% { background-position: 0 0; }
-            100% { background-position: 50px 0; }
+        /* 🔥 Milestone animation */
+        .milestone {
+            animation: glowBurst 0.6s ease-in-out 3;
+        }
+
+        @keyframes glowBurst {
+            0% { box-shadow: 0 0 10px #fff; }
+            50% { box-shadow: 0 0 40px #fff; }
+            100% { box-shadow: 0 0 10px #fff; }
         }
     </style>
 </head>
+
 <body>
 
     <div class="sub-goal-container">
-        <div class="goal-text" id="goalText">Subs: 73 / 300</div>
+        <div class="goal-text" id="goalText">Subs: 0 / 500</div>
+
         <div class="progress-bar">
             <div class="progress" id="progressBar"></div>
         </div>
+
         <div class="fire-effect"></div>
     </div>
 
+    <!-- 🔊 Sound -->
+    <audio id="subSound" src="https://www.myinstants.com/media/sounds/pop-up-off.mp3"></audio>
+
     <script>
-        let goal = 300;
-        let currentSubs = 81;
+        let goal = 500;
+        let currentSubs = 0;
+
         let channelId = 'UC_eL7CK36Yaf0Y7ejkgjDnw';
-        let apiKey = 'AIzaSyBHPAwqb25rv9v5DDwnn5_sKtjxnrICPXo'; // Use your API key here
-        
-        // Initialize the progress bar on load
-        document.addEventListener('DOMContentLoaded', function() {
-            updateSubGoal(currentSubs);
-            getSubscriberCount();
-            
-            // Set up periodic refresh (every 5 minutes)
-            setInterval(getSubscriberCount, 300000);
-        });
+        let apiKey = 'AIzaSyBHPAwqb25rv9v5DDwnn5_sKtjxnrICPXo'; // ⚠️ Replace this
+
+        // 🔄 Dynamic goal scaling
+        function getDynamicGoal(subs) {
+            if (subs < 100) return 100;
+            if (subs < 500) return 500;
+            if (subs < 1000) return 1000;
+            if (subs < 5000) return 5000;
+            return Math.ceil(subs / 1000) * 1000;
+        }
 
         function updateSubGoal(subs) {
             currentSubs = subs;
-            let progressPercent = Math.min((currentSubs / goal) * 100, 100); // Cap at 100%
-            document.getElementById("goalText").innerText = `Subs: ${currentSubs.toLocaleString()} / ${goal.toLocaleString()}`;
+            goal = getDynamicGoal(currentSubs);
+
+            let progressPercent = Math.min((currentSubs / goal) * 100, 100);
+
+            document.getElementById("goalText").innerText =
+                `Subs: ${currentSubs.toLocaleString()} / ${goal.toLocaleString()}`;
+
             document.getElementById("progressBar").style.width = `${progressPercent}%`;
+
+            // 🔥 Milestone effect
+            if (currentSubs === goal) {
+                let container = document.querySelector(".sub-goal-container");
+                container.classList.add("milestone");
+
+                setTimeout(() => {
+                    container.classList.remove("milestone");
+                }, 1500);
+            }
         }
 
-        // Function to get the current subscriber count using YouTube API
+        // 📡 Fetch subs from YouTube
         async function getSubscriberCount() {
             let url = `https://www.googleapis.com/youtube/v3/channels?part=statistics&id=${channelId}&key=${apiKey}`;
+
             try {
                 let response = await fetch(url);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
                 let data = await response.json();
+
                 if (data.items && data.items.length > 0) {
                     let subs = parseInt(data.items[0].statistics.subscriberCount);
                     if (!isNaN(subs)) {
                         updateSubGoal(subs);
-                    } else {
-                        console.error("Invalid subscriber count received");
                     }
-                } else {
-                    console.error("No channel data found");
                 }
             } catch (error) {
-                console.error("Error fetching subscriber data:", error);
-                // You could add a fallback here to increment locally if API fails
+                console.error("Error fetching subs:", error);
             }
         }
 
-        // Event listener for stream events (if using in a streaming platform)
+        // 🚀 Init
+        document.addEventListener('DOMContentLoaded', () => {
+            getSubscriberCount();
+            setInterval(getSubscriberCount, 300000); // every 5 min
+        });
+
+        // 🎮 Stream event listener
         window.addEventListener('onEventReceived', function (event) {
             let data = event.detail.event;
+
             if (data.type === "subscriber") {
                 updateSubGoal(currentSubs + 1);
+                document.getElementById("subSound").play();
             }
         });
     </script>
